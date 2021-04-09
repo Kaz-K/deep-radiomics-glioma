@@ -1,9 +1,9 @@
 import os
 import numpy as np
 import collections
+from typing import Tuple
 
 import torch
-import torch.nn.functional as F
 import pytorch_lightning as pl
 
 from dataio import get_data_loader
@@ -15,7 +15,7 @@ from functions import OneHotEncoder
 from utils import minmax_norm
 
 
-class SegmentationTrainer(pl.LightningModule):
+class TumorSegmentation(pl.LightningModule):
 
     def __init__(self, config: collections.namedtuple, save_dir_path: str) -> None:
         super().__init__()
@@ -101,8 +101,7 @@ class SegmentationTrainer(pl.LightningModule):
         focal_loss = self.l_focal(logit, target)
         return dice_loss + focal_loss
 
-
-    def training_step(self, batch: dict, batch_idx: int):
+    def training_step(self, batch, batch_idx):
         image = batch['image']
         label = batch['label']
 
@@ -120,3 +119,50 @@ class SegmentationTrainer(pl.LightningModule):
         self.log('seg_loss', seg_loss.sum(), prog_bar=True)
 
         return total_loss
+
+    def validation_step(self, batch, batch_idx):
+        image = batch['image']
+        label = batch['label']
+
+        with torch.no_grad():
+            logit, lat_loss = self.forward(image)
+
+        dice = self.dice_metric(logit, label)
+
+        if batch_idx == 0:
+            image = image.detach().cpu()
+            image = minmax_norm(image)
+
+            label = label.detach().cpu()
+            output = logit.argmax(dim=1).detach().cpu()
+
+            n_images = min(self.config.save.n_save_images, image.size(0))
+
+            save_modalities = ['t1ce']
+            if 'flair' in self.config.dataset.modalities:
+                save_modalities.append('flair')
+
+            save_series = []
+            for modality in save_modalities:
+                idx = self.config.dataset.modalities.index(modality)
+                save_image = image[:n_images, ...][:, idx, ...][:, np.newaxis, ...]
+                save_series.append(save_image)
+
+            label = label[:n_images, ...].float()[:, np.newaxis, ...]
+            output = output[:n_images, ...].float()[:, np.newaxis, ...]
+
+            max_label_val = self.config.metric.n_classes - 1
+            label /= max_label_val
+            output /= max_label_val
+
+            save_series.append(label)
+            save_series.append(output)
+
+            label_grid = torch.cat(save_series)
+            self.logger.log_images('segmentation',
+                                   label_grid,
+                                   self.current_epoch,
+                                   self.global_step,
+                                   nrow=n_images)
+
+        return dice
