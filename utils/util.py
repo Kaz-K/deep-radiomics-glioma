@@ -9,22 +9,6 @@ import torch.nn as nn
 from torch.autograd import Variable
 
 
-def norm(x, vmin=0, vmax=255):
-    x -= vmin
-    x /= (vmax - vmin)
-    x = 2.0 * (x - 0.5)
-    x = x.clamp_(-1, 1)
-    return x
-
-
-def denorm(x, vmin=0, vmax=1):
-    x = (x + 1) / 2.0
-    x = x.clamp_(0, 1)
-    x += vmin
-    x *= (vmax - vmin)
-    return x
-
-
 def minmax_norm(array, vmin=None, vmax=None):
     if vmin is None:
         vmin = array.min()

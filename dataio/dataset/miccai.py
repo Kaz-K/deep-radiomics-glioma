@@ -80,7 +80,7 @@ class MICCAIBraTSDataset(data.Dataset):
             'patient_id': file['patient_id'],
             'n_slice': file['n_slice'],
             'image': image,
-            'seg_label': seg,
+            'label': seg,
         }
 
         if self.transform:
