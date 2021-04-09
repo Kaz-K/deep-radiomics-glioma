@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 
 from .encoder import Encoder
@@ -28,7 +27,7 @@ def init_models(input_dim: int = 4,
             eps=1e-5,
             knn_backend=faiss_backend)
 
-    decoder = Decoder(output_dim=seg_output_dim,
+    decoder = Decoder(output_dim=output_dim,
                       emb_dim=emb_dim,
                       filters=dec_filters)
 
@@ -39,7 +38,7 @@ def init_models(input_dim: int = 4,
     encoder = nn.DataParallel(encoder)
 
     vq.cuda()
-    vq = nn.DataParallel(vq1)
+    vq = nn.DataParallel(vq)
 
     decoder.cuda()
     decoder = nn.DataParallel(decoder)

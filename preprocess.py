@@ -2,9 +2,7 @@ import os
 import numpy as np
 import nibabel as nib
 import scipy.misc
-import torch
 import cv2
-import matplotlib.pyplot as plt
 
 
 IMAGE_SIZE = 256

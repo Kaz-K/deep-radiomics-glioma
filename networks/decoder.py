@@ -1,10 +1,8 @@
 import torch
 import torch.nn as nn
-from torch.nn import functional as F
 
 from .blocks import ConvBlock
 from .blocks import UpConv
-from .blocks import Normalize
 
 
 class Decoder(nn.Module):

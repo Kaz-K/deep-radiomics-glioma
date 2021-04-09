@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from torch.autograd import Variable
-import numpy as np
 from typing import Optional
 
 
@@ -29,14 +27,8 @@ class SoftDiceLoss(nn.Module):
         denominator = output.sum(-1) + target.sum(-1)
 
         if self.ignore_index is not None:
-            intersect = torch.cat(
-                (intersect[0:self.ignore_index],
-                intersect[self.ignore_index + 1:])
-            )
-            denominator = torch.cat(
-                (denominator[0:self.ignore_index],
-                denominator[self.ignore_index + 1:])
-            )
+            intersect = torch.cat((intersect[0:self.ignore_index], intersect[self.ignore_index + 1:]))
+            denominator = torch.cat((denominator[0:self.ignore_index], denominator[self.ignore_index + 1:]))
 
         intersect = intersect.sum()
         denominator = denominator.sum()

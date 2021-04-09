@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Optional
 from typing import Union
 from typing import Dict
-from typing import Tuple
 
 import torch
 from torchvision.utils import save_image
@@ -95,7 +94,7 @@ class Logger(LightningLoggerBase):
                  config: collections.defaultdict,
                  seed: int,
                  monitoring_metrics: list,
-                 name: Optional[str]='default',
+                 name: Optional[str] = 'default',
                  version: Optional[Union[int, str]] = None,
                  **kwargs) -> None:
         super().__init__()

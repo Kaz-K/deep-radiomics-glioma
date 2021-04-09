@@ -3,10 +3,7 @@ import json
 import random
 import collections
 import datetime
-import numpy as np
 import torch
-import torch.nn as nn
-from torch.autograd import Variable
 
 
 def minmax_norm(array, vmin=None, vmax=None):
@@ -28,8 +25,10 @@ def load_json(path):
         for k, v in d.items():
             d[k] = None if v is False else v
         return collections.namedtuple('X', d.keys())(*d.values())
+
     def _json_to_obj(data):
         return json.loads(data, object_hook=_json_object_hook)
+
     return _json_to_obj(open(path).read())
 
 

@@ -1,14 +1,9 @@
 import os
 import numpy as np
 import random
-from tqdm import tqdm
-import torch
-from operator import itemgetter
 from torch.utils import data
 from torchvision import transforms
 from typing import Optional
-
-import matplotlib.pyplot as plt
 
 
 class MICCAIBraTSDataset(data.Dataset):
@@ -35,8 +30,8 @@ class MICCAIBraTSDataset(data.Dataset):
             for patient_id in os.listdir(root_dir_path):
                 patient_dir_path = os.path.join(root_dir_path, patient_id)
 
-                if not self.patient_ids is None:
-                    if not patient_id in self.patient_ids:
+                if self.patient_ids is not None:
+                    if patient_id not in self.patient_ids:
                         continue
 
                 for n_slice in range(self.n_slices):
@@ -47,7 +42,7 @@ class MICCAIBraTSDataset(data.Dataset):
 
                     for modality in self.modalities + ['seg']:
                         file_path = os.path.join(
-                            root_dir_path, patient_id,
+                            patient_dir_path,
                             patient_id + '_' + modality + '_' + str(n_slice).zfill(4) + '.npy'
                         )
                         assert os.path.exists(file_path)
