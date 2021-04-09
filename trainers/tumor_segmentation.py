@@ -89,11 +89,20 @@ class TumorSegmentation(pl.LightningModule):
             initial_randomize=False,
         )
 
+    def configure_optimizers(self):
+        optimizer = optim.Adam(filter(lambda p: p.requires_grad,
+                               chain(self.encoder.parameters(),
+                                     self.vq.parameters(),
+                                     self.decoder.parameters())),
+                             self.config.optimizer.lr, [0.9, 0.9999],
+                             weight_decay=self.config.optimizer.weight_decay)
+        return [optimizer], []
+
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         lat = self.encoder(x)
-        qlat, lat_loss, ids = self.vq(lat)
+        qlat, l_lat, ids = self.vq(lat)
         logit = self.decoder(qlat)
-        return logit, lat_loss
+        return logit, l_lat
 
     def l_seg(self, logit: torch.Tensor, label: torch.Tensor) -> torch.Tensor:
         target = self.one_hot_encoder(label)
@@ -105,17 +114,17 @@ class TumorSegmentation(pl.LightningModule):
         image = batch['image']
         label = batch['label']
 
-        logit, lat_loss = self.forward(image)
+        logit, l_lat = self.forward(image)
 
-        latent_loss = self.config.loss_weight.w_latent * lat_loss
+        lat_loss = self.config.loss_weight.w_lat * l_lat
         seg_loss = self.config.loss_weight.w_seg * self.l_seg(logit, label)
 
-        total_loss = (latent_loss + seg_loss).sum()
+        total_loss = (lat_loss + seg_loss).sum()
 
         self.log('epoch', self.current_epoch)
         self.log('iteration', self.global_step)
         self.log('total_loss', total_loss.sum(), prog_bar=True)
-        self.log('latent_loss', latent_loss.sum(), prog_bar=True)
+        self.log('lat_loss', lat_loss.sum(), prog_bar=True)
         self.log('seg_loss', seg_loss.sum(), prog_bar=True)
 
         return total_loss
@@ -125,7 +134,7 @@ class TumorSegmentation(pl.LightningModule):
         label = batch['label']
 
         with torch.no_grad():
-            logit, lat_loss = self.forward(image)
+            logit, _ = self.forward(image)
 
         dice = self.dice_metric(logit, label)
 

@@ -7,7 +7,7 @@ from .initialize import init_weights
 
 
 def init_models(input_dim: int = 4,
-                output_dim: int = 3,
+                output_dim: int = 4,
                 emb_dim: int = 64,
                 dict_size: int = 512,
                 enc_filters: list = [32, 64, 128, 128, 128, 128],

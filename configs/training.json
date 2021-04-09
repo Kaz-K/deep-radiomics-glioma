@@ -1,54 +1,36 @@
 {
   "run": {
     "seed": 5970,
-    "n_epochs": 500,
+    "n_epochs": 600,
     "visible_devices": "0",
     "distributed_backend": "dp",
-    "use_latent_discrimination": false,
-    "latent_discriminator_type": "V1",
-    "use_image_discrimination": false,
-    "use_gp": true,
-    "discriminator_iter": 5,
-    "apply_spectral_norm": true,
-    "resume_checkpoint": "./results/trained_models/ckpt-8x8-epoch=0399.ckpt"
+    "resume_checkpoint": false
   },
   "save": {
-    "study_name": "ckpt-8x8-epoch=0399",
-    "save_dir": "./results/eval_segmentation_fixed",
+    "study_name": "baseline",
+    "save_dir": "./results/tumor_segmentation",
     "n_save_images": 8
   },
-  "recon_loss": {
-    "apply_ssim": true
-  },
   "loss_weight": {
-    "w_latent": 0.25,
-    "w_recon": 5.0,
-    "w_similarity": 0.0,
-    "w_seg": 5.0,
-    "w_gp": 10.0,
-    "w_wgan_discriminator": 1e-4,
-    "w_wgan_generator": 1e-4
+    "w_lat": 1,
+    "w_seg": 1
   },
   "dataset": {
     "name": "MICCAIBraTSDataset",
     "modalities": ["t1", "t1ce", "t2", "flair"],
-    "root_dir_paths": ["./data/MICCAI_BraTS_2019_Data_Training_Slices"],
-    "augmentation_type": "none",
-    "use_shuffle": false,
-    "batch_size": 100,
-    "num_workers": 1
+    "root_dir_paths": ["./data/MICCAI_BraTS_2019_Data_Testing_Slices", "./data/MICCAI_BraTS_2019_Data_Validation_Slices"],
+    "augmentation_type": "A",
+    "use_shuffle": true,
+    "batch_size": 72,
+    "num_workers": 4
   },
   "model": {
     "input_dim": 4,
-    "apply_input_norm": false,
-    "img_output_dim": 4,
-    "seg_output_dim": 4,
-    "img_output_act": "none",
+    "output_dim": 4,
     "emb_dim": 64,
     "dict_size": 512,
     "enc_filters": [32, 64, 128, 128, 128, 128],
     "dec_filters": [128, 128, 128, 128, 64, 32],
-    "img_dis_filters": [32, 64, 128, 256, 256, 256],
     "latent_size": 8,
     "init_type": "kaiming",
     "faiss_backend": "faiss"
@@ -62,13 +44,15 @@
       "ET": 3
     }
   },
+  "dice_loss": {
+    "ignore_index": 0
+  },
   "focal_loss": {
     "gamma": 2,
     "alpha": false
   },
   "optimizer": {
-    "e_lr": 1e-4,
-    "l_lr": 1e-4,
+    "lr": 1e-4,
     "weight_decay": 1e-5
   }
 }
