@@ -1,0 +1,58 @@
+{
+  "run": {
+    "seed": 5970,
+    "n_epochs": 600,
+    "visible_devices": "0",
+    "distributed_backend": "dp",
+    "resume_checkpoint": false
+  },
+  "save": {
+    "study_name": "baseline",
+    "save_dir": "./results/tumor_segmentation",
+    "n_save_images": 8
+  },
+  "loss_weight": {
+    "w_lat": 1,
+    "w_seg": 1
+  },
+  "dataset": {
+    "name": "MICCAIBraTSDataset",
+    "modalities": ["t1", "t1ce", "t2", "flair"],
+    "root_dir_paths": ["./data/MICCAI_BraTS_2019_Data_Training_Slices"],
+    "augmentation_type": "A",
+    "use_shuffle": true,
+    "batch_size": 72,
+    "num_workers": 4
+  },
+  "model": {
+    "input_dim": 4,
+    "output_dim": 4,
+    "emb_dim": 64,
+    "dict_size": 512,
+    "enc_filters": [32, 64, 128, 128, 128, 128],
+    "dec_filters": [128, 128, 128, 128, 64, 32],
+    "latent_size": 8,
+    "init_type": "kaiming",
+    "faiss_backend": "faiss"
+  },
+  "metric": {
+    "n_classes": 4,
+    "class_name_to_index": {
+      "Background": 0,
+      "NET": 1,
+      "ED": 2,
+      "ET": 3
+    }
+  },
+  "dice_loss": {
+    "ignore_index": 0
+  },
+  "focal_loss": {
+    "gamma": 2,
+    "alpha": false
+  },
+  "optimizer": {
+    "lr": 1e-4,
+    "weight_decay": 1e-5
+  }
+}

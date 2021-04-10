@@ -1,3 +1,4 @@
+import torch 
 import torch.nn as nn
 
 from .encoder import Encoder
@@ -42,5 +43,17 @@ def init_models(input_dim: int = 4,
 
     decoder.cuda()
     decoder = nn.DataParallel(decoder)
+
+    return encoder, vq, decoder
+
+
+def load_models(encoder_path: str, vq_path: str, decoder_path: str,
+                *args, **kwargs):
+
+    encoder, vq, decoder = init_models(*args, **kwargs)
+
+    encoder.load_state_dict(torch.load(encoder_path))
+    vq.load_state_dict(torch.load(vq_path))
+    decoder.load_state_dict(torch.load(decoder_path))
 
     return encoder, vq, decoder

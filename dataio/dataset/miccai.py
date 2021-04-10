@@ -4,6 +4,7 @@ import random
 from torch.utils import data
 from torchvision import transforms
 from typing import Optional
+from operator import itemgetter
 
 
 class MICCAIBraTSDataset(data.Dataset):
@@ -18,20 +19,24 @@ class MICCAIBraTSDataset(data.Dataset):
                  ) -> None:
         super().__init__()
 
-        self.patient_ids = patient_ids
         self.transform = transform
         self.modalities = modalities
-        self.files = self.build_files(root_dir_paths, initial_randomize)
+        self.files = self.build_files(root_dir_paths, initial_randomize, patient_ids)
+        self.patient_ids = list(set([f['patient_id'] for f in self.files]))
 
-    def build_files(self, root_dir_paths: list, initial_randomize: bool) -> list:
+    def build_files(self,
+                    root_dir_paths: list,
+                    initial_randomize: bool,
+                    patient_ids: Optional[list],
+                    ) -> list:
         files = []
 
         for root_dir_path in root_dir_paths:
             for patient_id in os.listdir(root_dir_path):
                 patient_dir_path = os.path.join(root_dir_path, patient_id)
 
-                if self.patient_ids is not None:
-                    if patient_id not in self.patient_ids:
+                if patient_ids is not None:
+                    if patient_id not in patient_ids:
                         continue
 
                 for n_slice in range(self.n_slices):
@@ -58,9 +63,7 @@ class MICCAIBraTSDataset(data.Dataset):
     def __len__(self):
         return len(self.files)
 
-    def __getitem__(self, index):
-        file = self.files[index]
-
+    def load_file(self, file):
         series = []
         for modality in self.modalities:
             series.append(
@@ -82,3 +85,12 @@ class MICCAIBraTSDataset(data.Dataset):
             sample = self.transform(sample)
 
         return sample
+
+    def __getitem__(self, index):
+        file = self.files[index]
+        sample = self.load_file(file)
+        return sample 
+
+    def get_patient_samples(self, patient_id: str) -> list:
+        patient_files = [f for f in self.files if f['patient_id'] == patient_id]
+        return sorted(patient_files, key=itemgetter('n_slice'))
