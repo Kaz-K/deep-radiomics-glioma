@@ -69,8 +69,8 @@ def calc_dice(label, output, id_to_label):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Train segmentation model')
-    parser.add_argument('-c', '--config', help='training config file', required=True)
+    parser = argparse.ArgumentParser(description='Evaluate segmentation model')
+    parser.add_argument('-c', '--config', help='evaluation config file', required=True)
     args = parser.parse_args()
 
     config = load_json(args.config)

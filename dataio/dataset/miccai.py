@@ -22,7 +22,7 @@ class MICCAIBraTSDataset(data.Dataset):
         self.transform = transform
         self.modalities = modalities
         self.files = self.build_files(root_dir_paths, initial_randomize, patient_ids)
-        self.patient_ids = list(set([f['patient_id'] for f in self.files]))
+        self.patient_ids = sorted(list(set([f['patient_id'] for f in self.files])))
 
     def build_files(self,
                     root_dir_paths: list,
@@ -89,7 +89,7 @@ class MICCAIBraTSDataset(data.Dataset):
     def __getitem__(self, index):
         file = self.files[index]
         sample = self.load_file(file)
-        return sample 
+        return sample
 
     def get_patient_samples(self, patient_id: str) -> list:
         patient_files = [f for f in self.files if f['patient_id'] == patient_id]

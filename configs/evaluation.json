@@ -18,7 +18,7 @@
   "dataset": {
     "name": "MICCAIBraTSDataset",
     "modalities": ["t1", "t1ce", "t2", "flair"],
-    "root_dir_paths": ["./data/MICCAI_BraTS_2019_Data_Training_Slices"],
+    "root_dir_paths": ["../medimg-decompexit/data/MICCAI_BraTS_2019_Data_Training_Slices"],
     "augmentation_type": "A",
     "use_shuffle": true,
     "batch_size": 72,
