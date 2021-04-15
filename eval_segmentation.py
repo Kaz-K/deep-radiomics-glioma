@@ -50,13 +50,24 @@ def concat(arr1, arr2):
 def calc_dice(label, output, id_to_label):
     dice = {}
     for key in id_to_label.keys():
-        ls = label == key
-        os = output == key
+
+        if key in [0, 1, 2, 3]:
+            ls = label == key
+            os = output == key
+
+        elif key == 4:
+            ls = np.logical_or(label == 1, label == 3)
+            os = np.logical_or(output == 1, output == 3)
+
+        elif key == 5:
+            ls = np.logical_or(label == 1, label == 2, label == 3)
+            os = np.logical_or(output == 1, output == 2, output == 3)
 
         if np.any(ls):
             inter = np.sum(ls * os)
             union = np.sum(ls) + np.sum(os)
             score = 2.0 * inter / (union + 1e-5)
+
         else:
             score = None
 
@@ -77,6 +88,10 @@ if __name__ == '__main__':
 
     class_name_to_index = config.metric.class_name_to_index._asdict()
     index_to_class_name = {v: k for k, v in class_name_to_index.items()}
+    index_to_class_name.update({
+        4: 'TC',
+        5: 'WT',
+    })
 
     encoder, vq, decoder, dataset = init_eval(config)
 
@@ -86,13 +101,15 @@ if __name__ == '__main__':
         'NET': [],
         'ED': [],
         'ET': [],
+        'TC': [], # Tumor core = 1 + 3
+        'WT': [], # Whole tumor = 1 + 2 + 3
     }
 
-    for patient_id in dataset.patient_ids:
+    for patient_id in tqdm(dataset.patient_ids):
         label_volume = None
         output_volume = None
 
-        for file in tqdm(dataset.get_patient_samples(patient_id)):
+        for file in dataset.get_patient_samples(patient_id):
             sample = dataset.load_file(file)
             patient_id = sample['patient_id']
             n_slice = sample['n_slice']
@@ -122,6 +139,8 @@ if __name__ == '__main__':
         result_summary['NET'].append(dice_result['NET'])
         result_summary['ED'].append(dice_result['ED'])
         result_summary['ET'].append(dice_result['ET'])
+        result_summary['TC'].append(dice_result['TC'])
+        result_summary['WT'].append(dice_result['WT'])
 
     df = pd.DataFrame.from_dict(result_summary)
     df.to_csv('segmentation_result.csv')

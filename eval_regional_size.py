@@ -20,25 +20,8 @@ if __name__ == '__main__':
 
     df = radiomics.merge(mapping, left_index=True, right_on='BraTS_2019_subject_ID')
 
-    print(df.groupby('Grade').mean())
-    print(df.groupby('Grade').var())
-
-    lgg = df[df['Grade'] == 'LGG']
-    hgg = df[df['Grade'] == 'HGG']
-
-    print(bartlett(lgg['ALL_VoxelVolume'], hgg['ALL_VoxelVolume']))
-    print(ttest_ind(lgg['ALL_VoxelVolume'], hgg['ALL_VoxelVolume'], equal_var=False))
-
-    df.groupby('Grade')['ALL_VoxelVolume'].apply(
-        lambda x: sns.distplot(x, bins=50, hist=True, rug=False, label=x.name)
-    )
-
-    plt.xlabel('Voxel volume')
-    plt.ylabel('KDE')
-    plt.show()
-
     y = np.array(df['Grade'])
-    X = np.array(df.loc[:, ['ALL_VoxelVolume']])
+    X = np.array(df.loc[:, ['NET_VoxelVolume', 'ED_VoxelVolume', 'ET_VoxelVolume']])
 
     random_state = 1173
 
@@ -86,4 +69,4 @@ if __name__ == '__main__':
     }
 
     df = pd.DataFrame(data=result)
-    df.to_csv('./results/radiomics/classification_by_tumor_size.csv')
+    df.to_csv('./results/radiomics/classification_by_regional_size.csv')
