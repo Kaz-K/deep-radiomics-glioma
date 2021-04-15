@@ -12,6 +12,13 @@ data_root_paths = [
     '../Dataset/MICCAI_BraTS_2019_Data_Training/MICCAI_BraTS_2019_Data_Training/LGG',
 ]
 
+index_to_class_name = {
+    0: 'Background',
+    1: 'NET',
+    2: 'ED',
+    3: 'ET',
+}
+
 
 def get_patient_dir_paths(data_root_paths):
     files = []
@@ -33,8 +40,17 @@ def numpy_to_simpleitk(array, spacing=(1.0, 1.0, 1.0), origin=(0.0, 0.0, 0.0)):
     return image
 
 
-def calc_radiomics(image, mask):
+def calc_shape_radiomics(image, mask, idx):
     image = numpy_to_simpleitk(image)
+    mask = mask.copy()
+
+    if idx is not None:
+        mask[mask != idx] = 0
+        mask[mask == idx] = 1
+
+    else:
+        mask[mask > 0] = 1
+
     mask = numpy_to_simpleitk(mask)
 
     second_order = radiomics.shape.RadiomicsShape(image, mask)
@@ -65,19 +81,36 @@ if __name__ == '__main__':
 
         label_path = os.path.join(patient_dir_path, patient_id + '_seg.nii.gz')
         label = nib.load(label_path).get_fdata()
-        label[label > 0] = 1
+        label[label == 4] = 3
 
-        second_order = calc_radiomics(image, label)
-        second_order.update({
+        radiomics_result = {
             'patient_id': patient_id,
-        })
+        }
 
-        second_order = pd.Series(second_order)
+        keys = list(index_to_class_name.keys()) + [None]
+        for key in keys:
+            if key == 0:
+                continue
+
+            second_order = calc_shape_radiomics(image, label, idx=key)
+
+            for name, value in second_order.items():
+                if key is not None:
+                    radiomics_result.update({
+                        index_to_class_name[key] + '_' + name: value,
+                    })
+
+                else:
+                    radiomics_result.update({
+                        'ALL_' + name: value,
+                    })
+
+        radiomics_result = pd.Series(radiomics_result)
 
         if result is None:
-            result = second_order
+            result = radiomics_result
         else:
-            result = pd.concat([result, second_order], axis=1)
+            result = pd.concat([result, radiomics_result], axis=1)
 
     result = result.transpose()
     result = result.set_index('patient_id')

@@ -1,7 +1,6 @@
 import os
 import torch
 import argparse
-import random
 import radiomics
 import numpy as np
 import pandas as pd
@@ -48,7 +47,10 @@ if __name__ == '__main__':
     parser.add_argument('-c', '--config', help='evaluation config file', required=True)
     parser.add_argument('-s', '--shift', type=float, default=0.0)
     parser.add_argument('-t', '--scale', type=float, default=0.0)
+    parser.add_argument('-d', '--device', type=str)
     args = parser.parse_args()
+
+    os.environ['CUDA_VISIBLE_DEVICES'] = args.device
 
     shift_range = args.shift
     scale_range = args.scale
@@ -72,10 +74,7 @@ if __name__ == '__main__':
     if not os.path.exists(save_path):
         print('Processing: ', save_path)
 
-        transform = IntensityShiftScale(
-            shift=random.uniform(-shift_range, shift_range),
-            scale=random.uniform(1.0 - scale_range, 1.0 + scale_range),
-        )
+        transform = IntensityShiftScale(shift=shift_range, scale=1.0 + scale_range)
 
         features_list = None
         for patient_id in tqdm(dataset.patient_ids):

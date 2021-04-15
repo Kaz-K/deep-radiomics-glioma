@@ -3,6 +3,7 @@ result/
 results/
 saved_models/
 *.sh
+__old__/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
