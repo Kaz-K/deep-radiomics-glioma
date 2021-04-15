@@ -1,82 +1,138 @@
+import os
 import torch
-import argparse
 import random
 import radiomics
 import numpy as np
+import pandas as pd
 from tqdm import tqdm
+from sklearn.model_selection import KFold
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import confusion_matrix
 
 from utils import load_json
-from eval_segmentation import init_eval
-from eval_segmentation import concat
+from infer_features import save_dir_path
 
 
-class IntensityShiftScale(object):
-
-    def __init__(self, shift: float, scale: float):
-        self.shift = shift
-        self.scale = scale
-
-    def __call__(self, image):
-        return self.scale * (image + self.shift)
+name_mapping_path = './data/name_mapping.csv'
 
 
-def eval_reproducibility(patient_id, transform):
-    src_features = None
-    dst_features = None
+def eval_feature_difference(base_features, scale, shift):
+    base_data = base_features.values
 
-    for file in tqdm(dataset.get_patient_samples(patient_id)):
-        sample = dataset.load_file(file)
-        image = sample['image'].unsqueeze(0)
-        transformed = transform(image)
+    comp_features_path = os.path.join(
+        save_dir_path,
+        'features_scale_{:.1f}_shift_{:.1f}.csv'.format(scale, shift),
+    )
+    comp_features = pd.read_csv(comp_features_path, index_col=0, header=0)
+    comp_data = comp_features.values
 
-        with torch.no_grad():
-            _, _, s_ids = vq(encoder(image))
-            _, _, d_ids = vq(encoder(transformed))
+    diff = np.abs(base_data - comp_data).sum()
+    denominator = base_data.sum()
 
-        s_ids = s_ids.cpu().numpy().ravel()
-        d_ids = d_ids.cpu().numpy().ravel()
+    ratio = diff / denominator
 
-        src_features = concat(src_features, s_ids)
-        dst_features = concat(dst_features, d_ids)
+    return ratio
 
-    src_features = np.bincount(src_features.ravel(), minlength=minlength)
-    dst_features = np.bincount(dst_features.ravel(), minlength=minlength)
 
-    diff = np.abs(src_features - dst_features).sum()
-    denominator = src_features.sum()
+def eval_classification_performance(scale, shift, random_state):
+    comp_features_path = os.path.join(
+        save_dir_path,
+        'features_scale_{:.1f}_shift_{:.1f}.csv'.format(scale, shift),
+    )
+    comp_features = pd.read_csv(comp_features_path, index_col=0, header=0)
 
-    return diff / denominator
+    mapping = pd.read_csv(name_mapping_path, header=0)[['Grade', 'BraTS_2019_subject_ID']]
+
+    df = comp_features.merge(mapping, left_index=True, right_on='BraTS_2019_subject_ID')
+
+    y = np.array(df['Grade'])
+    X = np.array(df.loc[:, '0': '511'])
+
+    kf = KFold(n_splits=5, shuffle=True, random_state=random_state)
+
+    accuracy_list = []
+    precision_list = []
+    sensitivity_list = []
+    specificity_list = []
+    npv_list = []
+
+    for train_index, test_index in kf.split(X):
+        X_train, X_test = X[train_index], X[test_index]
+        y_train, y_test = y[train_index], y[test_index]
+
+        clf = LogisticRegression(random_state=random_state).fit(X_train, y_train)
+
+        y_pred  = clf.predict(X_test)
+
+        tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
+
+        accuracy = (tp + tn) / (tp + tn + fp + fn)
+        precision = tp / (tp + fp)
+        sensitivity = tp / (tp + fn)
+        specificity = tn / (tn + fp)
+        npv = tn / (tn + fn)
+
+        accuracy_list.append(accuracy)
+        precision_list.append(precision)
+        sensitivity_list.append(sensitivity)
+        specificity_list.append(specificity)
+        npv_list.append(npv)
+
+    result = {
+        'accuracy_mean': np.mean(accuracy_list),
+        'accuracy_std': np.std(accuracy_list),
+        'precision_mean': np.mean(precision_list),
+        'precision_std': np.std(precision_list),
+        'sensitivity_mean': np.mean(sensitivity_list),
+        'sensitivity_std': np.std(sensitivity_list),
+        'specificity_mean': np.mean(specificity_list),
+        'specificity_std': np.std(specificity_list),
+        'npv_mean': np.mean(npv_list),
+        'npv_std': np.std(npv_list),
+    }
+
+    return result
 
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Evaluate reproducibility')
-    parser.add_argument('-c', '--config', help='evaluation config file', required=True)
-    args = parser.parse_args()
+    base_features_path = os.path.join(
+        save_dir_path, 'features_scale_0.0_shift_0.0.csv'
+    )
+    base_features = pd.read_csv(base_features_path, index_col=0, header=0)
 
-    config = load_json(args.config)
-    minlength = config.model.dict_size
+    results = []
+    shift = 0.0
+    for scale in np.arange(0.0, 1.1, 0.1):
+        feat_diff = eval_feature_difference(base_features, scale, shift)
 
-    encoder, vq, decoder, dataset = init_eval(config)
+        result = {
+            'shift': shift,
+            'scale': scale,
+            'ratio': feat_diff,
+        }
 
-    encoder.eval()
-    vq.eval()
-    decoder.eval()
+        class_performance = eval_classification_performance(scale, shift, random_state=1173)
 
-    for shift_range in np.arange(0.0, 1.1, 0.1):
-        scale_range = 0.0
+        result.update(class_performance)
+        results.append(result)
 
-        transform = IntensityShiftScale(
-            shift=random.uniform(-shift_range, shift_range),
-            scale=random.uniform(1.0 - scale_range, 1.0 + scale_range),
-        )
+    scale = 0.0
+    for shift in np.arange(0.0, 1.1, 0.1):
+        feat_diff = eval_feature_difference(base_features, scale, shift)
 
-        values = []
-        for patient_id in dataset.patient_ids:
-            ratio = eval_reproducibility(patient_id, transform)
-            values.append(ratio)
+        result = {
+            'shift': shift,
+            'scale': scale,
+            'ratio': feat_diff,
+        }
 
-        values_mean = np.mean(values)
-        values_std = np.std(values)
+        class_performance = eval_classification_performance(scale, shift, random_state=1173)
 
-        print(shift_range, values_mean, values_std)
+        result.update(class_performance)
+        results.append(result)
+
+    df = pd.DataFrame(data=results)
+    df.to_csv(os.path.join(
+        save_dir_path, 'features_reproducibility.csv',
+    ))
