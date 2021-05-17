@@ -14,12 +14,7 @@ radiomics_path = './results/radiomics/radiomics.csv'
 name_mapping_path = './data/name_mapping.csv'
 
 
-if __name__ == '__main__':
-    mapping = pd.read_csv(name_mapping_path, header=0)[['Grade', 'BraTS_2019_subject_ID']]
-    radiomics = pd.read_csv(radiomics_path, header=0, index_col=0)
-
-    df = radiomics.merge(mapping, left_index=True, right_on='BraTS_2019_subject_ID')
-
+def test_classifier(df):
     y = np.array(df['Grade'])
     X = np.array(df.loc[:, ['NET_VoxelVolume', 'ED_VoxelVolume', 'ET_VoxelVolume']])
 
@@ -70,3 +65,16 @@ if __name__ == '__main__':
 
     df = pd.DataFrame(data=result)
     df.to_csv('./results/radiomics/classification_by_regional_size.csv')
+
+
+if __name__ == '__main__':
+    mapping = pd.read_csv(name_mapping_path, header=0)[['Grade', 'BraTS_2019_subject_ID']]
+    radiomics = pd.read_csv(radiomics_path, header=0, index_col=0)
+
+    df = radiomics.merge(mapping, left_index=True, right_on='BraTS_2019_subject_ID')
+
+    # test_classifier(df)
+
+    df = df.loc[:, ['Grade', 'NET_VoxelVolume', 'ED_VoxelVolume', 'ET_VoxelVolume', 'ALL_VoxelVolume']]
+
+    df.to_csv('regional_size.csv')

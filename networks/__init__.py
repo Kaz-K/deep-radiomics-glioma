@@ -1,4 +1,4 @@
-import torch 
+import torch
 import torch.nn as nn
 
 from .encoder import Encoder
@@ -34,15 +34,6 @@ def init_models(input_dim: int = 4,
 
     init_weights(encoder, init_type)
     init_weights(decoder, init_type)
-
-    encoder.cuda()
-    encoder = nn.DataParallel(encoder)
-
-    vq.cuda()
-    vq = nn.DataParallel(vq)
-
-    decoder.cuda()
-    decoder = nn.DataParallel(decoder)
 
     return encoder, vq, decoder
 

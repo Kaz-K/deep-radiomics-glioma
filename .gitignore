@@ -1,9 +1,12 @@
+eval*
+infer*
 data/
 result/
 results/
 saved_models/
 *.sh
 __old__/
+*.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

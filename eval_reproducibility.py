@@ -26,12 +26,14 @@ def eval_feature_difference(base_features, scale, shift):
     comp_features = pd.read_csv(comp_features_path, index_col=0, header=0)
     comp_data = comp_features.values
 
-    diff = np.abs(base_data - comp_data).sum()
-    denominator = base_data.sum()
+    diff = np.sum(np.abs(base_data - comp_data), axis=1)
+    denominator = np.sum(base_data, axis=1)
 
     ratio = diff / denominator
+    ratio_mean = np.mean(ratio)
+    ratio_std = np.std(ratio)
 
-    return ratio
+    return ratio_mean, ratio_std
 
 
 def eval_classification_performance(scale, shift, random_state):
@@ -104,12 +106,13 @@ if __name__ == '__main__':
     results = []
     shift = 0.0
     for scale in np.arange(0.0, 1.1, 0.1):
-        feat_diff = eval_feature_difference(base_features, scale, shift)
+        feat_diff_mean, feat_diff_std = eval_feature_difference(base_features, scale, shift)
 
         result = {
             'shift': shift,
             'scale': scale,
-            'ratio': feat_diff,
+            'ratio_mean': feat_diff_mean,
+            'ratio_std': feat_diff_std,
         }
 
         class_performance = eval_classification_performance(scale, shift, random_state=1173)
@@ -119,12 +122,13 @@ if __name__ == '__main__':
 
     scale = 0.0
     for shift in np.arange(0.0, 1.1, 0.1):
-        feat_diff = eval_feature_difference(base_features, scale, shift)
+        feat_diff_mean, feat_diff_std = eval_feature_difference(base_features, scale, shift)
 
         result = {
             'shift': shift,
             'scale': scale,
-            'ratio': feat_diff,
+            'ratio_mean': feat_diff_mean,
+            'ratio_std': feat_diff_std,
         }
 
         class_performance = eval_classification_performance(scale, shift, random_state=1173)
@@ -134,5 +138,5 @@ if __name__ == '__main__':
 
     df = pd.DataFrame(data=results)
     df.to_csv(os.path.join(
-        save_dir_path, 'features_reproducibility.csv',
+        save_dir_path, 'features_reproducibility_fixed.csv',
     ))
